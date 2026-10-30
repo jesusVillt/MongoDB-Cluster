@@ -2,6 +2,11 @@
 
 En esta actividad se implementa una base de datos distribuida sencilla en MongoDB. La arquitectura consta de un servidor de configuración, tres shards y una instancia de `mongos`.
 
+## Integrantes
+Amir Ovedi Mendiaz Rodriguez -385685
+Santiago de la Mora Martínez -385613
+Jesús Manuel Villegas Terrazas -385743
+
 ## Configuración paso a paso
 
 ### Paso 1: Levantar los contenedores
