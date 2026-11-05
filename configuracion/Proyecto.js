@@ -40,4 +40,10 @@ db.movies.deleteOne({ id_movie: 999902 });
 db.movies.getShardDistribution();
 
 //ESTADO FINAL DEL CLÚSTER Y BALANCEO
+sh.splitFind("sample_mflix.movies", { id_movie: 3000 });
+sh.splitFind("sample_mflix.movies", { id_movie: 10000 });
+sh.splitFind("sample_mflix.movies", { id_movie: 14000 });
+
+sh.moveChunk("sample_mflix.movies", { id_movie: 3000 }, "shard1ReplSet", { waitForDelete: false });
+sh.moveChunk("sample_mflix.movies", { id_movie: 14000 }, "shard3ReplSet", { waitForDelete: false });
 sh.status();
