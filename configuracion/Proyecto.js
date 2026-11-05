@@ -39,7 +39,7 @@ db.movies.getShardDistribution();
 db.movies.deleteOne({ id_movie: 999902 });
 db.movies.getShardDistribution();
 
-//ESTADO FINAL DEL CLÚSTER Y BALANCEO
+// Para crear balanceo por rango:
 sh.splitFind("sample_mflix.movies", { id_movie: 7116 });
 sh.splitAt("sample_mflix.movies", { id_movie: 14233 })
 
@@ -47,3 +47,21 @@ sh.moveChunk("sample_mflix.movies", { id_movie: 1 }, "shard1ReplSet");
 sh.moveChunk("sample_mflix.movies", { id_movie: 7116 }, "shard1ReplSet");
 sh.moveChunk("sample_mflix.movies", { id_movie: 14223 }, "shard3ReplSet");
 sh.status();
+
+// Comandos utilizados para el balanceo de carga por Shard Key tipo hashed
+db.movies.aggregate([{ $out: "movies_backup2" }])
+db.movies.drop()
+db.movies.countDocuments(); // verificamos que se borro
+sh.shardCollection("sample_mflix.movies", { id_movie: "hashed" }, false, { numInitialChunks: 6 })
+let batch = [];
+db.movies_backup2.find().forEach(function(d) {
+  batch.push(d);
+  if (batch.length == 1000) { 
+    db.movies.insertMany(batch); 
+    batch = []; 
+  }
+});
+if (batch.length) db.movies.insertMany(batch);
+
+
+
