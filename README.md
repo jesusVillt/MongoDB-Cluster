@@ -142,3 +142,122 @@ Para comprobar que los documentos se repartieron entre los shards:
 ```javascript
 db.emp.getShardDistribution()
 ```
+
+# MongoDB-Cluster Proyecto
+
+### Paso 1: 
+seguir todos los pasos hasta el paso 5 anterior
+
+### Paso 2: Copiar e importar la base de datos de prueba
+Copiamos el archivo con la semilla `sample_mflix.movies.json` al contenedor de `mongos`:
+
+```bash
+
+docker cp sample_mflix.movies.json mongos:/tmp/sample_mflix.movies.json
+
+```
+
+Importamos los datos de prueba a la colección `movies`:
+
+```bash
+docker exec -it mongos mongoimport --port 27021 --db=sample_mflix --collection=movies --file=/tmp/sample_mflix.movies.json --jsonArray
+
+```
+
+### Paso 3: Conectarse a la base de datos e indexar
+
+```bash
+docker exec -it mongos mongosh --port 27021
+
+```
+
+nos aseguramos de estar sobre la base de datos sample-mflix:
+```javascript
+use sample_mflix
+```
+Asignamos el id_movie a cada documento
+
+```javascript
+let counter = 1;
+
+db.movies.find().forEach(function(doc) {
+
+    db.movies.updateOne(
+
+        { _id: doc._id },
+
+        { $set: { id_movie: counter++ } }
+
+    );
+
+});
+```
+
+### Paso 4: Respaldar la colección original
+
+```javascript
+
+db.movies.aggregate([{ $out: "movies_backup2" }])
+
+```
+Verificamos que la copia contenga la totalidad de los documentos:
+```javascript
+
+db.movies_backup2.countDocuments()
+
+```
+
+### Paso 5: Vaciar la colección principal
+
+Eliminamos la colección `movies`
+
+```javascript
+
+db.movies.drop()
+
+```
+
+### Paso 6: Configurar la clave de fragmentación (Shard Key Hashed)
+
+Configuramos la Shard Key de tipo `hashed` sobre el campo `id_movie`.
+```javascript
+
+sh.shardCollection("sample_mflix.movies", { id_movie: "hashed" }, false, { numInitialChunks: 6 })
+
+```
+
+### Paso 7: Restaurar los datos
+Reinsertamos los datos desde la copia de respaldo:
+
+```javascript
+let batch = [];
+
+db.movies_backup2.find().forEach(function(d) {
+
+    batch.push(d);
+
+    if (batch.length == 1000) { 
+
+        db.movies.insertMany(batch); 
+
+        batch = []; 
+
+    }
+
+});
+
+if (batch.length) db.movies.insertMany(batch);
+
+```
+
+### Paso 8: Verificar la distribución
+
+```javascript
+
+db.movies.getShardDistribution()
+
+```
+
+
+
+
